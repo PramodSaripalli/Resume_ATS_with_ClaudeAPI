@@ -1,8 +1,9 @@
-kaggle
-PyPDF2
+torch==2.0.1+cpu
+sentence-transformers==2.2.2
+transformers==4.25.0
+faiss-cpu
 langchain
 langchain-community
-sentence-transformers
-faiss-cpu
 google-generativeai
 streamlit
+PyPDF2
