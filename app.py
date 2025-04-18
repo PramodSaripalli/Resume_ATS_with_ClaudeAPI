@@ -1,3 +1,4 @@
+!pip install PyPDF2 langchain langchain-community sentence-transformers faiss-cpu google-generativeai
 import os
 import json
 import PyPDF2
