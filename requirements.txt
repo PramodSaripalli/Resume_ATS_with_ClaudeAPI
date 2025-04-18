@@ -1,3 +1,4 @@
+kaggle
 PyPDF2
 langchain
 langchain-community
