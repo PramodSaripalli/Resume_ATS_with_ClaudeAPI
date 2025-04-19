@@ -1,6 +1,6 @@
-torch==2.0.1+cpu
-sentence-transformers==2.2.2
-transformers==4.25.0
+torch
+sentence-transformers
+transformers
 faiss-cpu
 langchain
 langchain-community
