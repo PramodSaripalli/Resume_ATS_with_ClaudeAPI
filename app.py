@@ -73,7 +73,7 @@ def analyze_resume(job_desc, resume_text):
         return {"error": "Failed to parse JSON output"}
 
 # Streamlit UI
-st.title("Resume ATS Optimizer")
+st.title("ATS Resume Optimizer")
 st.text("Check your resume ATS score based on the job you are applying and optimize it")
 
 # Upload file and input job description
