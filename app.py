@@ -90,8 +90,8 @@ if st.button("Submit"):
         if "error" in result:
             st.error(result["error"])
         else:
-            st.subheader("ATS Score: ")
-            st.write(f"Score: {result['match_score']}")
+            st.subheader("ATS Score")
+            st.write(f" Match Score: {result['match_score']}")
             st.subheader("Missing Keywords & Suggestions: ")
             for kw in result.get("missing_keywords", []):
                 st.write(f"- **{kw['keyword']}**: {kw['suggestion']}")
