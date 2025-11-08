@@ -42,7 +42,7 @@ def analyze_resume(job_desc, resume_text):
 
     # Retrieve relevant documents using RAG
     retriever = vector_store.as_retriever(search_kwargs={"k": 2})
-    retrieved_docs = retriever.get_relevant_documents(job_desc)
+    retrieved_docs = retriever.invoke(job_desc)
     context = "\n".join([doc.page_content for doc in retrieved_docs])
 
     # Generate ATS score and missing keywords
