@@ -1,99 +1,142 @@
-#importing required libraries
+# required packages — run these in a separate cell first:
+# !pip install anthropic pypdf sentence-transformers faiss-cpu
+
+# 1) Importing required libraries
 import os
 import json
-import PyPDF2
-import streamlit as st
-from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_core.documents import Document
-import google.generativeai as genai
+import anthropic
+import pypdf
+from sentence_transformers import SentenceTransformer
+import faiss
+import numpy as np
 
-# Configuring Gemini API
+# 2) Configuring Claude API via Kaggle Secrets
+# In Kaggle: Add-ons → Secrets → Add → Name: ANTHROPIC_API_KEY, Value: your key
 try:
+    from kaggle_secrets import UserSecretsClient
     user_secrets = UserSecretsClient()
-    os.environ["GOOGLE_API_KEY"] = user_secrets.get_secret("GOOGLE_API_KEY")
+    os.environ["ANTHROPIC_API_KEY"] = user_secrets.get_secret("ANTHROPIC_API_KEY")
 except:
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyALyqhdzcO8AamcfeQUFBCwkhn1uUhCf2E"
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-model = genai.GenerativeModel("gemini-2.0-flash")
+    # Fallback for local use — set env variable externally, never hardcode
+    pass
 
-# Embeddings for RAG
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-# extract text from PDF resume
-def extract_resume_text(uploaded_file):
+# 3) Embeddings for RAG (no langchain needed)
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def build_vector_store(texts):
+    vectors = embedding_model.encode(texts, convert_to_numpy=True)
+    index = faiss.IndexFlatL2(vectors.shape[1])
+    index.add(vectors)
+    return index, texts
+
+def retrieve_context(query, texts, index):
+    query_vec = embedding_model.encode([query], convert_to_numpy=True)
+    _, indices = index.search(query_vec, k=2)
+    return "\n".join([texts[i] for i in indices[0]])
+
+# 4) Paste your job description here
+job_description = """
+Responsibilities:
+
+Assist in creating and maintaining interactive dashboards and visual reports using Power BI.
+Analyze data sets to identify trends, patterns, and actionable insights.
+Develop SQL queries to extract and manipulate data from relational databases.
+Collaborate with team members to gather requirements and understand reporting needs.
+Support the analysis and interpretation of data to inform business decisions.
+Perform data cleaning and validation to ensure data accuracy.
+Document data sources, methods, and visualization processes.
+Participate in team meetings to present findings and recommendations.
+
+Qualifications:
+
+Currently pursuing a degree in Data Science, Business Analytics, Computer Science, or a related field.
+Experience with Power BI for data visualization and reporting.
+Basic knowledge of SQL for querying and data manipulation.
+Understanding of relational databases and data modeling concepts.
+Strong analytical thinking and problem-solving skills.
+Excellent communication skills, both written and verbal.
+Detail-oriented and capable of handling multiple tasks efficiently.
+Eagerness to learn and adapt to new data analysis techniques.
+"""
+
+# 5) Extract text from PDF resume
+def extract_resume_text(pdf_path):
     try:
-        reader = PyPDF2.PdfReader(uploaded_file)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() or ""
-        return text
+        with open(pdf_path, 'rb') as file:
+            reader = pypdf.PdfReader(file)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() or ""
+            return text
     except Exception as e:
         return f"Error reading PDF: {str(e)}"
 
-#  Analyze Resume and Job Description Using Gemini Model
+# 6) Resume heading check — handles common variations
+def check_resume_headings(resume_text):
+    standard_headings = {
+        "work experience": ["work experience", "experience", "professional experience", "employment history"],
+        "skills":          ["skills", "technical skills", "core competencies"],
+        "education":       ["education", "academic background", "qualifications"],
+        "summary":         ["summary", "objective", "professional summary", "about me", "profile"],
+        "certifications":  ["certifications", "certificates", "licenses"]
+    }
+    found = [h for h, variants in standard_headings.items()
+             if any(v in resume_text.lower() for v in variants)]
+    return found, len(found) < 3
+
+# 7) Resume path — update if needed
+resume_path = "/kaggle/input/resume/Pramod Saripalli Resume (1).pdf"
+resume_text = extract_resume_text(resume_path)
+headings, headings_warning = check_resume_headings(resume_text)
+
+# 8) Build vector store
+index, texts = build_vector_store([job_description, resume_text])
+
+# 9) Analyze resume using Claude
 def analyze_resume(job_desc, resume_text):
-    # Store documents in FAISS vector store for RAG
-    documents = [
-        Document(page_content=job_desc, metadata={"type": "job_description"}),
-        Document(page_content=resume_text, metadata={"type": "resume"})
-    ]
-    vector_store = FAISS.from_documents(documents, embeddings)
+    context = retrieve_context(job_desc, texts, index)
 
-    # Retrieve relevant documents using RAG
-    retriever = vector_store.as_retriever(search_kwargs={"k": 2})
-    retrieved_docs = retriever.invoke(job_desc)
-    context = "\n".join([doc.page_content for doc in retrieved_docs])
-
-    # Generate ATS score and missing keywords
     prompt = f"""
-    You are a job application assistant specializing in ATS optimization. Given the job description and resume, provide:
-    1. Job match score based on skill and experience alignment, prioritizing hard skills and relevant soft skills. Penalize the score heavily for missing critical domain-specific skills, irrelevant job role experience, or lack of industry alignment. Cap the score at 90-100 for resumes that closely match core job requirements.
-    2. Missing keywords or skills from the resume that are in the job description, limited to 5 high-priority terms to avoid keyword stuffing. Suggest how to integrate them contextually.
-    
-    Context:
-    {context}
+You are a job application assistant specializing in ATS optimization. Given the job description and resume, provide:
+1. Job match score based on skill and experience alignment, prioritizing hard skills and relevant soft skills. Penalize the score heavily for missing critical domain-specific skills, irrelevant job role experience, or lack of industry alignment. Cap the score at 80-90 for resumes that closely match core job requirements.
+2. Missing keywords or skills from the resume that are in the job description, limited to 5 high-priority terms to avoid keyword stuffing. Suggest how to integrate them contextually.
 
-    Output in JSON format:
-    ```json
-    {{
-      "match_score": <int>,
-      "missing_keywords": [{{"keyword": "<string>", "suggestion": "<string>"}}]
-    }}
-    ```
-    """
+Context:
+{context}
 
-    # Gemini API
-    response = model.generate_content(prompt)
+Additional Notes:
+- Ensure keywords are relevant and naturally integrated, avoiding excessive repetition.
+- Consider standard resume headings (Work Experience, Skills, Education) for ATS compatibility.
+- If the resume lacks standard headings, note this as a potential ATS issue.
+- For irrelevant job roles, ensure the score reflects significant mismatches in skills or industry experience.
+
+Output ONLY a valid JSON object with no markdown fences or extra text:
+{{
+  "match_score": <int>,
+  "missing_keywords": [{{"keyword": "<string>", "suggestion": "<string>"}}]
+}}
+"""
+
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    response_text = message.content[0].text.strip()
+
     try:
-        # JSON from response
-        json_output = json.loads(response.text.strip("```json\n").strip("\n```"))
-        return json_output
+        clean = response_text.replace("```json", "").replace("```", "").strip()
+        return json.loads(clean)
     except json.JSONDecodeError:
-        return {"error": "Failed to parse JSON output"}
+        return {"error": "Failed to parse JSON output", "raw_response": response_text}
 
-# Streamlit UI
-st.title("ATS Resume Optimizer")
-st.text("Check your resume ATS score based on the job you are applying and optimize it")
+# 10) Run and print results
+if headings_warning:
+    print(f"⚠️  ATS Warning: Only {len(headings)} standard headings found: {headings}")
+    print("    Consider adding: Work Experience, Skills, Education, Summary, or Certifications\n")
 
-# Upload file and input job description
-uploaded_file = st.file_uploader("Upload your Resume (PDF)", type="pdf")
-job_description = st.text_area("Enter the Job Description", height=150)
-
-if st.button("Submit"):
-    if uploaded_file is not None and job_description:
-        with st.spinner("Analyzing..."):
-            resume_text = extract_resume_text(uploaded_file)
-            result = analyze_resume(job_description, resume_text)
-
-        # Display results
-        if "error" in result:
-            st.error(result["error"])
-        else:
-            st.subheader("ATS Score")
-            st.write(f" Match Score: {result['match_score']}")
-            st.subheader("Missing Keywords & Suggestions: ")
-            for kw in result.get("missing_keywords", []):
-                st.write(f"- **{kw['keyword']}**: {kw['suggestion']}")
-    else:
-        st.warning("Please upload a resume and enter a job description.")
+result = analyze_resume(job_description, resume_text)
+print(json.dumps(result, indent=2))
