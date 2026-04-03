@@ -54,22 +54,26 @@ def analyze_resume(job_desc, resume_text):
     context = retrieve_context(job_desc, texts, index)
 
     prompt = f"""
-You are a job application assistant specializing in ATS optimization. Given the job description and resume, provide:
-1. Job match score based on skill and experience alignment, prioritizing hard skills and relevant soft skills. Penalize the score heavily for missing critical domain-specific skills, irrelevant job role experience, or lack of industry alignment. Cap the score at 80-90 for resumes that closely match core job requirements.
-2. Missing keywords or skills from the resume that are in the job description, limited to 5 high-priority terms to avoid keyword stuffing. Suggest how to integrate them contextually.
+You are a brutally honest career coach and ATS expert. Your job is to give raw, direct, no-sugarcoating feedback on this resume against the job description. Do not be encouraging for the sake of it. If the resume is weak, say so clearly.
+
+Provide the following:
+
+1. ATS match score (0-100) based on hard skills, experience relevance, and industry alignment.
+   - Penalize heavily for missing critical skills, vague bullet points, or irrelevant experience.
+   - Only give 80+ if the resume genuinely competes for this role.
+   - Be stingy with high scores.
+
+2. Brutally honest overall feedback — what is actually wrong with this resume for this role. Be specific, not generic. Call out weak bullet points, missing impact metrics, irrelevant experience, or anything that would make a recruiter skip it.
+
+3. Up to 5 missing high-priority keywords from the job description not found in the resume, with a specific suggestion on exactly where and how to add each one naturally.
 
 Context:
 {context}
 
-Additional Notes:
-- Ensure keywords are relevant and naturally integrated, avoiding excessive repetition.
-- Consider standard resume headings (Work Experience, Skills, Education) for ATS compatibility.
-- If the resume lacks standard headings, note this as a potential ATS issue.
-- For irrelevant job roles, ensure the score reflects significant mismatches in skills or industry experience.
-
 Output ONLY a valid JSON object with no markdown fences or extra text:
 {{
   "match_score": <int>,
+  "overall_feedback": "<string — brutally honest, 3-5 sentences>",
   "missing_keywords": [{{"keyword": "<string>", "suggestion": "<string>"}}]
 }}
 """
@@ -92,7 +96,7 @@ Output ONLY a valid JSON object with no markdown fences or extra text:
 # 6) Streamlit UI
 st.set_page_config(page_title="ATS Resume Optimizer", page_icon="📄")
 st.title("📄 ATS Resume Optimizer")
-st.write("Upload your resume and paste a job description to get an ATS match score and missing keyword suggestions.")
+st.write("Upload your resume and paste a job description to get a brutally honest ATS score and feedback.")
 
 job_description = st.text_area("Paste Job Description", height=250, placeholder="Paste the full job description here...")
 uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
@@ -121,6 +125,10 @@ if st.button("Analyze Resume"):
             color = "green" if score >= 75 else "orange" if score >= 50 else "red"
             st.markdown(f"<h1 style='color:{color}'>{score} / 100</h1>", unsafe_allow_html=True)
             st.progress(score / 100)
+
+            # Brutally honest feedback
+            st.subheader("💬 Honest Feedback")
+            st.error(result.get("overall_feedback", "No feedback returned."))
 
             # Missing keywords
             st.subheader("Missing Keywords")
