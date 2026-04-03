@@ -1,9 +1,5 @@
-torch
+anthropic
+pypdf
 sentence-transformers
-transformers
 faiss-cpu
-langchain
-langchain-community
-google-generativeai
 streamlit
-PyPDF2
