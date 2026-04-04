@@ -4,7 +4,7 @@ An AI-powered resume analyzer that scores your resume against a job description 
 
 ## Demo
 
-[Live App on Streamlit](https://resumeatswithclaudeapi-7gdjzm2bkdnipcpzbgga65.streamlit.app/))
+[Live App on Streamlit](https://resumeatswithclaudeapi-7gdjzm2bkdnipcpzbgga65.streamlit.app/)
 
 ## What It Does
 
@@ -45,4 +45,5 @@ An AI-powered resume analyzer that scores your resume against a job description 
 - Conversational chatbot for instant resume improvement tips
 - Automatic resume bullet point rewriter based on missing keywords
 
+## Blog
 [Blog Post](https://ats-resume-optimizer.blogspot.com/2025/04/building-ats-optimized-resume-analyzer.html)
