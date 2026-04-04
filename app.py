@@ -54,16 +54,15 @@ def analyze_resume(job_desc, resume_text):
     context = retrieve_context(job_desc, texts, index)
 
     prompt = f"""
-You are a brutally honest career coach and ATS expert. Your job is to give raw, direct, no-sugarcoating feedback on this resume against the job description. Do not be encouraging for the sake of it. If the resume is weak, say so clearly.
+You are an honest career coach and ATS expert. Review this resume against the job description and provide fair, specific feedback.
 
 Provide the following:
 
 1. ATS match score (0-100) based on hard skills, experience relevance, and industry alignment.
    - Penalize heavily for missing critical skills, vague bullet points, or irrelevant experience.
    - Only give 80+ if the resume genuinely competes for this role.
-   - Be stingy with high scores.
 
-2. Brutally honest overall feedback — what is actually wrong with this resume for this role. Be specific, not generic. Call out weak bullet points, missing impact metrics, irrelevant experience, or anything that would make a recruiter skip it.
+2. Honest, balanced overall feedback — acknowledge what the resume does well for this role, but be clear and specific about what is missing or weak. Do not exaggerate strengths. If a critical skill or keyword is absent, call it out directly without softening it.
 
 3. Up to 5 missing high-priority keywords from the job description not found in the resume, with a specific suggestion on exactly where and how to add each one naturally.
 
@@ -73,7 +72,7 @@ Context:
 Output ONLY a valid JSON object with no markdown fences or extra text:
 {{
   "match_score": <int>,
-  "overall_feedback": "<string — brutally honest, 3-5 sentences>",
+  "overall_feedback": "<string — honest and balanced, 3-5 sentences>",
   "missing_keywords": [{{"keyword": "<string>", "suggestion": "<string>"}}]
 }}
 """
@@ -96,7 +95,7 @@ Output ONLY a valid JSON object with no markdown fences or extra text:
 # 6) Streamlit UI
 st.set_page_config(page_title="ATS Resume Optimizer", page_icon="📄")
 st.title("📄 ATS Resume Optimizer")
-st.write("Upload your resume and paste a job description to get a brutally honest ATS score and feedback.")
+st.write("Upload your resume and paste a job description to get an honest ATS score and feedback.")
 
 job_description = st.text_area("Paste Job Description", height=250, placeholder="Paste the full job description here...")
 uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
@@ -126,9 +125,9 @@ if st.button("Analyze Resume"):
             st.markdown(f"<h1 style='color:{color}'>{score} / 100</h1>", unsafe_allow_html=True)
             st.progress(score / 100)
 
-            # Brutally honest feedback
-            st.subheader("💬 Honest Feedback")
-            st.error(result.get("overall_feedback", "No feedback returned."))
+            # Balanced feedback
+            st.subheader("💬 Feedback")
+            st.warning(result.get("overall_feedback", "No feedback returned."))
 
             # Missing keywords
             st.subheader("Missing Keywords")
