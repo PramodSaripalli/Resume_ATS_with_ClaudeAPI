@@ -4,7 +4,7 @@ An AI-powered resume analyzer that scores your resume against a job description 
 
 ## Demo
 
-[Live App on Streamlit](https://share.streamlit.io) <!-- replace with your actual link -->
+[Live App on Streamlit](https://resumeatswithclaudeapi-7gdjzm2bkdnipcpzbgga65.streamlit.app/))
 
 ## What It Does
 
@@ -31,54 +31,6 @@ An AI-powered resume analyzer that scores your resume against a job description 
 3. Claude Haiku analyzes the context and returns a structured JSON response with a match score, feedback, and missing keywords
 4. Results are displayed in the Streamlit UI
 
-## Setup
-
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/PramodSaripalli/Resume_ATS_with_Google_Flash
-cd Resume_ATS_with_Google_Flash
-```
-
-### 2. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Add your API key
-
-Create a `.streamlit/secrets.toml` file:
-
-```toml
-ANTHROPIC_API_KEY = "sk-ant-..."
-```
-
-Get your API key at [console.anthropic.com](https://console.anthropic.com)
-
-### 4. Run the app
-
-```bash
-streamlit run app.py
-```
-
-## Requirements
-
-```
-anthropic
-pypdf
-sentence-transformers
-faiss-cpu
-streamlit
-```
-
-## Project Structure
-
-```
-├── app.py               # Streamlit app
-├── requirements.txt     # Dependencies
-└── README.md
-```
 
 ## Limitations
 
@@ -93,8 +45,4 @@ streamlit
 - Conversational chatbot for instant resume improvement tips
 - Automatic resume bullet point rewriter based on missing keywords
 
-## Author
-
-**Pramod Saripalli**
-
-[Blog Post](https://your-blog-link) <!-- replace with your actual link --> | [LinkedIn](https://linkedin.com/in/pramod-saripalli)
+[Blog Post](https://ats-resume-optimizer.blogspot.com/2025/04/building-ats-optimized-resume-analyzer.html)
